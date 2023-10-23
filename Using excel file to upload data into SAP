@@ -1,7 +1,182 @@
+#########################################################################
+
+*&  The below prorams achieve the following
+
+*&  1. Create a custom table where data is upload from the excel sheet
+*&  2. Display data in the custom table in the output with buttons approve and reject
+*&  3. Click on the button in output to create sales orders
+
+
+########################################################################
+
+
+************************************************
+*&  STEP 1  -- Upload data from excel into custom table
+************************************************
+
+
+*  &---------------------------------------------------------------------*
+*  & Report Z_UPLOAD_CSV_TO_TABLE1
+*  &---------------------------------------------------------------------*
+*  &
+*  &---------------------------------------------------------------------*
+  REPORT z_upload_csv_to_table2.
+  TYPES: BEGIN OF z_mara_csv,
+           vbeln TYPE vbap-vbeln,
+           matnr TYPE vbap-matnr,
+           kunnr TYPE vbak-kunnr,
+           vkorg TYPE vbak-vkorg,
+           kostl TYPE vbak-kostl,
+         END OF z_mara_csv.
+
+ TYPES: BEGIN OF ttab,
+rec(1000) TYPE c,
+END OF ttab.
+
+*   Internal Table
+
+  DATA:  itab type TABLE of ttab WITH HEADER LINE,
+         gt_z_mara_csv TYPE TABLE OF ztable_sales,
+         gt_z_mara_csv2 TYPE TABLE OF ztable_sales,
+        wa_gt         TYPE ztable_sales,
+        wa        TYPE ztable_sales.
+
+
+*  FIELD-SYMBOLS <fs_ztable_sales> TYPE ztable_sales.
+
+DATA: file_str TYPE string.
+
+*   Selection Screen
+  SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001.
+    PARAMETERS p_file TYPE localfile.
+  SELECTION-SCREEN END OF BLOCK b1.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR p_file.
+
+CALL FUNCTION 'KD_GET_FILENAME_ON_F4'
+EXPORTING
+static = 'X'
+CHANGING
+file_name = p_file.
+
+file_str = p_file.
+
+
+  START-OF-SELECTION.
+**   Upload CSV file
+*    CALL FUNCTION 'GUI_UPLOAD'
+*      EXPORTING
+*        filename                = file_str
+*        filetype                = 'ASC'
+*
+*      TABLES
+*        data_tab                = gt_z_mara_csv
+*      EXCEPTIONS
+*        file_open_error         = 1
+*        file_read_error         = 2
+*        no_batch                = 3
+*        gui_refuse_filetransfer = 4
+*        invalid_type            = 5
+*        no_authority            = 6
+*        unknown_error           = 7
+*        bad_data_format         = 8
+*        header_not_allowed      = 9
+*        separator_not_allowed   = 10
+*        header_too_long         = 11
+*        unknown_dp_error        = 12
+*        access_denied           = 13
+*        dp_out_of_memory        = 14
+*        disk_full               = 15
+*        dp_timeout              = 16
+*        OTHERS                  = 17.
+
+CALL FUNCTION 'GUI_UPLOAD'
+  EXPORTING
+    FILENAME                      = file_str
+*   FILETYPE                      = 'ASC'
+*   HAS_FIELD_SEPARATOR           = ' '
+*   HEADER_LENGTH                 = 0
+*   READ_BY_LINE                  = 'X'
+*   DAT_MODE                      = ' '
+*   CODEPAGE                      = ' '
+*   IGNORE_CERR                   = ABAP_TRUE
+*   REPLACEMENT                   = '#'
+*   CHECK_BOM                     = ' '
+*   VIRUS_SCAN_PROFILE            =
+*   NO_AUTH_CHECK                 = ' '
+* IMPORTING
+*   FILELENGTH                    =
+*   HEADER                        =
+  TABLES
+    DATA_TAB                      = itab
+* CHANGING
+*   ISSCANPERFORMED               = ' '
+* EXCEPTIONS
+*   FILE_OPEN_ERROR               = 1
+*   FILE_READ_ERROR               = 2
+*   NO_BATCH                      = 3
+*   GUI_REFUSE_FILETRANSFER       = 4
+*   INVALID_TYPE                  = 5
+*   NO_AUTHORITY                  = 6
+*   UNKNOWN_ERROR                 = 7
+*   BAD_DATA_FORMAT               = 8
+*   HEADER_NOT_ALLOWED            = 9
+*   SEPARATOR_NOT_ALLOWED         = 10
+*   HEADER_TOO_LONG               = 11
+*   UNKNOWN_DP_ERROR              = 12
+*   ACCESS_DENIED                 = 13
+*   DP_OUT_OF_MEMORY              = 14
+*   DISK_FULL                     = 15
+*   DP_TIMEOUT                    = 16
+*   OTHERS                        = 17
+          .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
+
+
+
+    IF sy-subrc <> 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+              WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+*   Insert data into custom table
+*    LOOP AT gt_z_mara_csv ASSIGNING FIELD-SYMBOL(<fs_z_mara_csv>).
+*      INSERT ztable_sales FROM <fs_z_mara_csv>.
+*    ENDLOOP.
+
+    LOOP AT itab.
+      clear wa_gt.
+      SPLIT itab AT ',' INTO wa_gt-vbeln
+      wa_gt-matnr
+      wa_gt-kunnr
+      wa_gt-vkorg
+      wa_gt-kostl.
+      APPEND wa_gt to gt_z_mara_csv2.
+    ENDLOOP.
+
+
+*  *   Insert data into custom table
+    LOOP AT gt_z_mara_csv2 into wa.
+      INSERT ztable_sales FROM wa.
+    ENDLOOP.
+
+
+***************************************************************************
+
+*&  STEP 2 -  Display data in the custom table in the output with buttons approve and reject
+
+
+***************************************************************************
+
+
+
 *&---------------------------------------------------------------------*
 *& Report ZALVK
 *&---------------------------------------------------------------------*
-*&
+*& This program displays the list of sales order which is stored in the 
+*& which was stored in the Z table through the excel upload program
 *&---------------------------------------------------------------------*
 REPORT ZALVK.
 
